@@ -5,49 +5,11 @@ public class BunkerGenerator : MonoBehaviour
 {
     private const int TotalPisos = 3;
 
-    [Header("Semilla y cuadrícula")]
-    public bool generarAlIniciar = true;
-    public int semilla;
-    [Range(3, 6)] public int columnas = 4;
-    [Range(3, 5)] public int filas = 3;
-    [Min(14f)] public float separacionSalas = 20f;
-    [Min(8f)] public float tamanoSalaMin = 12f;
-    [Min(9f)] public float tamanoSalaMax = 16f;
-    [Min(1)] public int conexionesExtra = 5;
+    [Header("Configuración")]
+    [SerializeField] private BunkerSettingsSO config;
 
-    [Header("Circulación")]
-    [Min(3f)] public float anchoPasillo = 4f;
-    [Min(3f)] public float alturaPiso = 3.5f;
-    [Min(4f)] public float alturaEntrePisos = 5f;
-    [Min(2.2f)] public float alturaPuerta = 2.7f;
-    [Min(0.1f)] public float grosorEstructura = 0.25f;
-    [Min(2.5f)] public float anchoRampa = 3.5f;
-    [Min(6f)] public float recorridoRampa = 8f;
-
-    [Header("Bloques modulares opcionales")]
-    public GameObject prefabSuelo;
-    public GameObject prefabPared;
-    public GameObject prefabRampa;
-    public Material materialSuelo;
-    public Material materialParedes;
-    public Material materialRampa;
-
-    [Header("Atmósfera y ruinas")]
-    public bool atmosferaOscura = true;
-    public bool crearTechos = true;
-    public bool crearLuces = true;
-    public bool generarEscombros = true;
-    [Range(0f, 0.1f)] public float densidadNiebla = 0.025f;
-    [Range(0f, 2f)] public float intensidadLuces = 0.65f;
-    public Color colorAmbiente = new Color(0.055f, 0.075f, 0.1f);
-    public Color colorFondo = new Color(0.004f, 0.007f, 0.012f);
-
-    [Header("Jugador, enemigos y bosses")]
+    [Header("Escena")]
     public PlayerController jugador;
-    public bool moverJugadorAlSpawn = true;
-    public GameObject prefabEnemigo;
-    [Min(0)] public int enemigosPorSala;
-    public GameObject prefabBoss;
 
     public int SemillaUsada { get; private set; }
     public Transform SpawnJugador { get; private set; }
@@ -55,6 +17,14 @@ public class BunkerGenerator : MonoBehaviour
     public List<Transform> PuntosSpawnBoss { get; } = new List<Transform>();
 
     [SerializeField] private Transform raizGenerada;
+
+    private struct RutaRampa
+    {
+        public Vector3 inicio;
+        public Vector3 fin;
+    }
+
+    private readonly List<RutaRampa> rutasRampas = new List<RutaRampa>();
 
     private static readonly Vector2Int[] Direcciones =
     {
@@ -96,34 +66,27 @@ public class BunkerGenerator : MonoBehaviour
             jugador = FindFirstObjectByType<PlayerController>();
         }
 
-        if (generarAlIniciar)
+        if (config != null && config.generarAlIniciar)
         {
             GenerarBunker();
         }
     }
 
-    private void OnValidate()
-    {
-        separacionSalas = Mathf.Max(separacionSalas, tamanoSalaMax + 3f);
-        tamanoSalaMin = Mathf.Max(tamanoSalaMin, recorridoRampa + 3f);
-        tamanoSalaMax = Mathf.Max(tamanoSalaMax, tamanoSalaMin + 1f);
-        alturaEntrePisos = Mathf.Max(alturaEntrePisos, alturaPiso + 0.75f);
-        alturaPuerta = Mathf.Clamp(alturaPuerta, 2.2f, alturaPiso - 0.2f);
-        recorridoRampa = Mathf.Max(recorridoRampa, alturaEntrePisos * 1.25f);
-        anchoRampa = Mathf.Clamp(anchoRampa, 2.5f, anchoPasillo - 0.5f);
-        enemigosPorSala = Mathf.Clamp(enemigosPorSala, 0, 2);
-        conexionesExtra = Mathf.Max(0, conexionesExtra);
-    }
-
     [ContextMenu("Generar búnker procedural")]
     public void GenerarBunker()
     {
+        if (config == null)
+        {
+            Debug.LogError("AURA: asigna un BunkerSettingsSO en el campo Config antes de generar.", this);
+            return;
+        }
+
         LimpiarBunker();
 
-        SemillaUsada = semilla != 0 ? semilla : Random.Range(1, int.MaxValue);
+        SemillaUsada = config.semilla != 0 ? config.semilla : Random.Range(1, int.MaxValue);
         System.Random aleatorio = new System.Random(SemillaUsada);
 
-        if (atmosferaOscura)
+        if (config.atmosferaOscura)
         {
             ConfigurarAtmosfera();
         }
@@ -140,7 +103,7 @@ public class BunkerGenerator : MonoBehaviour
 
         for (int piso = 0; piso < TotalPisos; piso++)
         {
-            float alturaY = piso * alturaEntrePisos;
+            float alturaY = piso * config.alturaEntrePisos;
             List<Sala> salas = CrearSalas(aleatorio);
             List<Conexion> conexiones = CrearGrafoConectado(salas, aleatorio);
 
@@ -183,7 +146,7 @@ public class BunkerGenerator : MonoBehaviour
         Physics.SyncTransforms();
         MoverJugador();
 
-        Debug.Log($"AURA: semilla {SemillaUsada}. {TotalPisos} pisos, {columnas * filas * TotalPisos} salas, {PuntosSpawnEnemigos.Count} spawns enemigos y {PuntosSpawnBoss.Count} bosses. Rampas en salas {rampa01} y {rampa12}.", this);
+        Debug.Log($"AURA: semilla {SemillaUsada}. {TotalPisos} pisos, {config.columnas * config.filas * TotalPisos} salas, {PuntosSpawnEnemigos.Count} spawns enemigos y {PuntosSpawnBoss.Count} bosses. Rampas en salas {rampa01} y {rampa12}.", this);
     }
 
     [ContextMenu("Limpiar búnker")]
@@ -191,6 +154,7 @@ public class BunkerGenerator : MonoBehaviour
     {
         PuntosSpawnEnemigos.Clear();
         PuntosSpawnBoss.Clear();
+        rutasRampas.Clear();
         SpawnJugador = null;
 
         if (raizGenerada == null)
@@ -214,16 +178,16 @@ public class BunkerGenerator : MonoBehaviour
 
     private List<Sala> CrearSalas(System.Random aleatorio)
     {
-        List<Sala> salas = new List<Sala>(columnas * filas);
-        float offsetX = (columnas - 1) * separacionSalas * 0.5f;
-        float offsetZ = (filas - 1) * separacionSalas * 0.5f;
+        List<Sala> salas = new List<Sala>(config.columnas * config.filas);
+        float offsetX = (config.columnas - 1) * config.separacionSalas * 0.5f;
+        float offsetZ = (config.filas - 1) * config.separacionSalas * 0.5f;
 
-        for (int fila = 0; fila < filas; fila++)
+        for (int fila = 0; fila < config.filas; fila++)
         {
-            for (int columna = 0; columna < columnas; columna++)
+            for (int columna = 0; columna < config.columnas; columna++)
             {
-                float ancho = Mathf.Lerp(tamanoSalaMin, tamanoSalaMax, (float)aleatorio.NextDouble());
-                float profundidad = Mathf.Lerp(tamanoSalaMin, tamanoSalaMax, (float)aleatorio.NextDouble());
+                float ancho = Mathf.Lerp(config.tamanoSalaMin, config.tamanoSalaMax, (float)aleatorio.NextDouble());
+                float profundidad = Mathf.Lerp(config.tamanoSalaMin, config.tamanoSalaMax, (float)aleatorio.NextDouble());
                 ancho = Mathf.Round(ancho * 2f) * 0.5f;
                 profundidad = Mathf.Round(profundidad * 2f) * 0.5f;
 
@@ -234,7 +198,7 @@ public class BunkerGenerator : MonoBehaviour
                     fila = fila,
                     ancho = ancho,
                     profundidad = profundidad,
-                    centro = new Vector3(columna * separacionSalas - offsetX, 0f, fila * separacionSalas - offsetZ)
+                    centro = new Vector3(columna * config.separacionSalas - offsetX, 0f, fila * config.separacionSalas - offsetZ)
                 });
             }
         }
@@ -290,7 +254,7 @@ public class BunkerGenerator : MonoBehaviour
         }
 
         Mezclar(candidatos, aleatorio);
-        int cantidad = Mathf.Min(conexionesExtra, candidatos.Count);
+        int cantidad = Mathf.Min(config.conexionesExtra, candidatos.Count);
         for (int i = 0; i < cantidad; i++)
         {
             Conexion conexion = candidatos[i];
@@ -326,12 +290,12 @@ public class BunkerGenerator : MonoBehaviour
         int columna = salas[indice].columna + Direcciones[direccion].x;
         int fila = salas[indice].fila + Direcciones[direccion].y;
 
-        if (columna < 0 || columna >= columnas || fila < 0 || fila >= filas)
+        if (columna < 0 || columna >= config.columnas || fila < 0 || fila >= config.filas)
         {
             return -1;
         }
 
-        return fila * columnas + columna;
+        return fila * config.columnas + columna;
     }
 
     private int DireccionEntre(List<Sala> salas, int a, int b)
@@ -469,14 +433,14 @@ public class BunkerGenerator : MonoBehaviour
                 CrearSpawnsEnemigos(raizSala, sala, piso, alturaY);
             }
 
-            if (crearLuces)
+            if (config.crearLuces)
             {
                 Color color = saleRampa || llegaRampa ? new Color(1f, 0.06f, 0.025f) : new Color(0.28f, 0.55f, 0.68f);
                 CrearLuz(raizSala, saleRampa || llegaRampa ? "Luz_Alerta_AURA" : "Luz_Fria",
-                    sala.centro + Vector3.up * (alturaY + alturaPiso - 0.35f), color);
+                    sala.centro + Vector3.up * (alturaY + config.alturaPiso - 0.35f), color);
             }
 
-            if (generarEscombros)
+            if (config.generarEscombros)
             {
                 CrearEscombros(raizSala, sala, alturaY, aleatorio);
             }
@@ -491,9 +455,9 @@ public class BunkerGenerator : MonoBehaviour
         Transform puntoBoss = CrearPunto($"Spawn_Boss_P{piso + 1}", raizPiso, posicionBoss);
         PuntosSpawnBoss.Add(puntoBoss);
 
-        if (prefabBoss != null)
+        if (config.prefabBoss != null)
         {
-            Instantiate(prefabBoss, puntoBoss.position, puntoBoss.rotation, puntoBoss);
+            InstantiateBunkerElement(config.prefabBoss, puntoBoss);
         }
     }
 
@@ -511,7 +475,7 @@ public class BunkerGenerator : MonoBehaviour
             CrearLosa("Suelo", padre, area, alturaY, false);
         }
 
-        if (crearTechos)
+        if (config.crearTechos)
         {
             if (saleRampa)
             {
@@ -552,34 +516,34 @@ public class BunkerGenerator : MonoBehaviour
     {
         if (!tienePuerta)
         {
-            CrearSegmentoPared(nombre, padre, centro, alturaY, longitud, alturaPiso, aLoLargoDeX);
+            CrearSegmentoPared(nombre, padre, centro, alturaY, longitud, config.alturaPiso, aLoLargoDeX);
             return;
         }
 
-        float tramo = (longitud - anchoPasillo) * 0.5f;
-        float desplazamiento = anchoPasillo * 0.5f + tramo * 0.5f;
+        float tramo = (longitud - config.anchoPasillo) * 0.5f;
+        float desplazamiento = config.anchoPasillo * 0.5f + tramo * 0.5f;
         Vector3 direccion = aLoLargoDeX ? Vector3.right : Vector3.forward;
 
         CrearSegmentoPared($"{nombre}_A", padre, centro - direccion * desplazamiento,
-            alturaY, tramo, alturaPiso, aLoLargoDeX);
+            alturaY, tramo, config.alturaPiso, aLoLargoDeX);
         CrearSegmentoPared($"{nombre}_B", padre, centro + direccion * desplazamiento,
-            alturaY, tramo, alturaPiso, aLoLargoDeX);
+            alturaY, tramo, config.alturaPiso, aLoLargoDeX);
 
-        float alturaDintel = alturaPiso - alturaPuerta;
-        Vector3 centroDintel = centro + Vector3.up * alturaPuerta;
+        float alturaDintel = config.alturaPiso - config.alturaPuerta;
+        Vector3 centroDintel = centro + Vector3.up * config.alturaPuerta;
         CrearSegmentoPared($"{nombre}_Dintel", padre, centroDintel,
-            alturaY, anchoPasillo, alturaDintel, aLoLargoDeX);
+            alturaY, config.anchoPasillo, alturaDintel, aLoLargoDeX);
     }
 
     private void CrearSegmentoPared(string nombre, Transform padre, Vector3 centro, float alturaY,
         float longitud, float altura, bool aLoLargoDeX)
     {
         Vector3 escala = aLoLargoDeX
-            ? new Vector3(longitud, altura, grosorEstructura)
-            : new Vector3(grosorEstructura, altura, longitud);
+            ? new Vector3(longitud, altura, config.grosorEstructura)
+            : new Vector3(config.grosorEstructura, altura, longitud);
 
-        CrearBloque(nombre, prefabPared, padre, centro + Vector3.up * (alturaY + altura * 0.5f),
-            escala, materialParedes, Quaternion.identity);
+        InstantiateBunkerElement(nombre, config.prefabPared, padre, centro + Vector3.up * (alturaY + altura * 0.5f),
+            escala, config.materialParedes, Quaternion.identity);
     }
 
     private void CrearPasillo(Transform padre, Sala a, Sala b, int direccion, float alturaY)
@@ -611,50 +575,56 @@ public class BunkerGenerator : MonoBehaviour
             : new Vector3(a.centro.x, 0f, centroLongitud);
 
         Rect area = horizontal
-            ? new Rect(centroLongitud - longitud * 0.5f, a.centro.z - anchoPasillo * 0.5f, longitud, anchoPasillo)
-            : new Rect(a.centro.x - anchoPasillo * 0.5f, centroLongitud - longitud * 0.5f, anchoPasillo, longitud);
+            ? new Rect(centroLongitud - longitud * 0.5f, a.centro.z - config.anchoPasillo * 0.5f, longitud, config.anchoPasillo)
+            : new Rect(a.centro.x - config.anchoPasillo * 0.5f, centroLongitud - longitud * 0.5f, config.anchoPasillo, longitud);
 
         CrearLosa("Suelo_Pasillo", raizPasillo, area, alturaY, false);
-        if (crearTechos)
+        if (config.crearTechos)
         {
             CrearLosa("Techo_Pasillo", raizPasillo, area, alturaY, true);
         }
 
         Vector3 escalaSuelo = horizontal
-            ? new Vector3(longitud, alturaPiso, grosorEstructura)
-            : new Vector3(grosorEstructura, alturaPiso, longitud);
+            ? new Vector3(longitud, config.alturaPiso, config.grosorEstructura)
+            : new Vector3(config.grosorEstructura, config.alturaPiso, longitud);
         Vector3 offset = horizontal ? Vector3.forward : Vector3.right;
 
-        CrearBloque("Pared_Pasillo_A", prefabPared, raizPasillo,
-            centro + offset * (anchoPasillo * 0.5f) + Vector3.up * (alturaY + alturaPiso * 0.5f),
-            escalaSuelo, materialParedes, Quaternion.identity);
-        CrearBloque("Pared_Pasillo_B", prefabPared, raizPasillo,
-            centro - offset * (anchoPasillo * 0.5f) + Vector3.up * (alturaY + alturaPiso * 0.5f),
-            escalaSuelo, materialParedes, Quaternion.identity);
+        InstantiateBunkerElement("Pared_Pasillo_A", config.prefabPared, raizPasillo,
+            centro + offset * (config.anchoPasillo * 0.5f) + Vector3.up * (alturaY + config.alturaPiso * 0.5f),
+            escalaSuelo, config.materialParedes, Quaternion.identity);
+        InstantiateBunkerElement("Pared_Pasillo_B", config.prefabPared, raizPasillo,
+            centro - offset * (config.anchoPasillo * 0.5f) + Vector3.up * (alturaY + config.alturaPiso * 0.5f),
+            escalaSuelo, config.materialParedes, Quaternion.identity);
     }
 
     private void CrearRampa(Transform padre, Sala sala, float alturaY, int orientacion)
     {
-        float longitud = Mathf.Sqrt(recorridoRampa * recorridoRampa + alturaEntrePisos * alturaEntrePisos);
-        float inclinacion = -Mathf.Atan2(alturaEntrePisos, recorridoRampa) * Mathf.Rad2Deg;
+        float longitud = Mathf.Sqrt(config.recorridoRampa * config.recorridoRampa + config.alturaEntrePisos * config.alturaEntrePisos);
+        float inclinacion = -Mathf.Atan2(config.alturaEntrePisos, config.recorridoRampa) * Mathf.Rad2Deg;
         Quaternion rotacion = Quaternion.Euler(0f, orientacion, 0f) * Quaternion.Euler(inclinacion, 0f, 0f);
-        Vector3 centro = sala.centro + Vector3.up * (alturaY + alturaEntrePisos * 0.5f);
+        Vector3 centro = sala.centro + Vector3.up * (alturaY + config.alturaEntrePisos * 0.5f);
 
-        CrearBloque($"Rampa_Sala_{sala.indice}", prefabRampa, padre,
-            centro - rotacion * Vector3.up * grosorEstructura * 0.5f,
-            new Vector3(anchoRampa, grosorEstructura, longitud),
-            materialRampa != null ? materialRampa : materialSuelo, rotacion);
+        InstantiateBunkerElement($"Rampa_Sala_{sala.indice}", config.prefabRampa, padre,
+            centro - rotacion * Vector3.up * config.grosorEstructura * 0.5f,
+            new Vector3(config.anchoRampa, config.grosorEstructura, longitud),
+            config.materialRampa != null ? config.materialRampa : config.materialSuelo, rotacion);
 
         Vector3 derecha = Quaternion.Euler(0f, orientacion, 0f) * Vector3.right;
-        float offset = anchoRampa * 0.5f + 0.08f;
+        float offset = config.anchoRampa * 0.5f + 0.08f;
         Vector3 alturaBaranda = rotacion * Vector3.up * 0.55f;
 
-        CrearBloque("Baranda_Rampa_A", prefabPared, padre,
+        InstantiateBunkerElement("Baranda_Rampa_A", config.prefabPared, padre,
             centro - derecha * offset + alturaBaranda,
-            new Vector3(0.14f, 1f, longitud), materialParedes, rotacion);
-        CrearBloque("Baranda_Rampa_B", prefabPared, padre,
+            new Vector3(0.14f, 1f, longitud), config.materialParedes, rotacion);
+        InstantiateBunkerElement("Baranda_Rampa_B", config.prefabPared, padre,
             centro + derecha * offset + alturaBaranda,
-            new Vector3(0.14f, 1f, longitud), materialParedes, rotacion);
+            new Vector3(0.14f, 1f, longitud), config.materialParedes, rotacion);
+
+        rutasRampas.Add(new RutaRampa
+        {
+            inicio = sala.centro + Vector3.up * (alturaY + 0.2f),
+            fin = sala.centro + Vector3.up * (alturaY + config.alturaEntrePisos + 0.2f)
+        });
     }
 
     private void CrearProteccionesHueco(Transform padre, Sala sala, float alturaY, int orientacion)
@@ -662,17 +632,17 @@ public class BunkerGenerator : MonoBehaviour
         bool vertical = orientacion % 180 == 0;
         float margen = 0.3f;
         Vector3 offset = vertical
-            ? Vector3.right * (anchoRampa * 0.5f + margen)
-            : Vector3.forward * (anchoRampa * 0.5f + margen);
+            ? Vector3.right * (config.anchoRampa * 0.5f + margen)
+            : Vector3.forward * (config.anchoRampa * 0.5f + margen);
         Vector3 escala = vertical
-            ? new Vector3(0.14f, 1f, recorridoRampa)
-            : new Vector3(recorridoRampa, 1f, 0.14f);
+            ? new Vector3(0.14f, 1f, config.recorridoRampa)
+            : new Vector3(config.recorridoRampa, 1f, 0.14f);
         Vector3 centro = sala.centro + Vector3.up * (alturaY + 0.5f);
 
-        CrearBloque("Proteccion_Hueco_A", prefabPared, padre, centro - offset,
-            escala, materialParedes, Quaternion.identity);
-        CrearBloque("Proteccion_Hueco_B", prefabPared, padre, centro + offset,
-            escala, materialParedes, Quaternion.identity);
+        InstantiateBunkerElement("Proteccion_Hueco_A", config.prefabPared, padre, centro - offset,
+            escala, config.materialParedes, Quaternion.identity);
+        InstantiateBunkerElement("Proteccion_Hueco_B", config.prefabPared, padre, centro + offset,
+            escala, config.materialParedes, Quaternion.identity);
     }
 
     private Rect AreaSala(Sala sala)
@@ -684,8 +654,8 @@ public class BunkerGenerator : MonoBehaviour
     private Rect HuecoRampa(Sala sala, int orientacion)
     {
         bool vertical = orientacion % 180 == 0;
-        float ancho = vertical ? anchoRampa + 0.6f : recorridoRampa + 0.6f;
-        float profundidad = vertical ? recorridoRampa + 0.6f : anchoRampa + 0.6f;
+        float ancho = vertical ? config.anchoRampa + 0.6f : config.recorridoRampa + 0.6f;
+        float profundidad = vertical ? config.recorridoRampa + 0.6f : config.anchoRampa + 0.6f;
         return new Rect(sala.centro.x - ancho * 0.5f, sala.centro.z - profundidad * 0.5f,
             ancho, profundidad);
     }
@@ -711,14 +681,14 @@ public class BunkerGenerator : MonoBehaviour
         }
 
         float y = techo
-            ? alturaY + alturaPiso + grosorEstructura * 0.5f
-            : alturaY - grosorEstructura * 0.5f;
-        Material material = techo ? materialParedes : materialSuelo;
-        GameObject prefab = techo ? prefabPared : prefabSuelo;
+            ? alturaY + config.alturaPiso + config.grosorEstructura * 0.5f
+            : alturaY - config.grosorEstructura * 0.5f;
+        Material material = techo ? config.materialParedes : config.materialSuelo;
+        GameObject prefab = techo ? config.prefabPared : config.prefabSuelo;
 
-        CrearBloque(nombre, prefab, padre,
+        InstantiateBunkerElement(nombre, prefab, padre,
             new Vector3(area.center.x, y, area.center.y),
-            new Vector3(area.width, grosorEstructura, area.height), material, Quaternion.identity);
+            new Vector3(area.width, config.grosorEstructura, area.height), material, Quaternion.identity);
     }
 
     private Rect RectDesdeLimites(float xMin, float zMin, float xMax, float zMax)
@@ -742,9 +712,9 @@ public class BunkerGenerator : MonoBehaviour
             Transform punto = CrearPunto($"Spawn_Enemigo_P{piso + 1}_S{sala.indice}_{i + 1}", padre, posicion);
             PuntosSpawnEnemigos.Add(punto);
 
-            if (prefabEnemigo != null && i < enemigosPorSala)
+            if (config.prefabEnemigo != null && i < config.enemigosPorSala)
             {
-                Instantiate(prefabEnemigo, punto.position, punto.rotation, punto);
+                InstantiateBunkerElement(config.prefabEnemigo, punto);
             }
         }
     }
@@ -761,9 +731,9 @@ public class BunkerGenerator : MonoBehaviour
                 (float)aleatorio.NextDouble());
             Quaternion rotacion = Quaternion.Euler(0f, (float)aleatorio.NextDouble() * 360f, 0f);
 
-            GameObject escombro = CrearBloque($"Escombro_{i}", null, padre,
+            GameObject escombro = InstantiateBunkerElement($"Escombro_{i}", null, padre,
                 new Vector3(x, alturaY + alto * 0.5f, z),
-                new Vector3(ancho, alto, profundidad), materialParedes, rotacion);
+                new Vector3(ancho, alto, profundidad), config.materialParedes, rotacion);
 
             foreach (Collider colision in escombro.GetComponentsInChildren<Collider>())
             {
@@ -783,18 +753,18 @@ public class BunkerGenerator : MonoBehaviour
     {
         RenderSettings.skybox = null;
         RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-        RenderSettings.ambientLight = colorAmbiente;
+        RenderSettings.ambientLight = config.colorAmbiente;
         RenderSettings.ambientIntensity = 0.4f;
         RenderSettings.reflectionIntensity = 0.25f;
         RenderSettings.fog = true;
         RenderSettings.fogMode = FogMode.ExponentialSquared;
-        RenderSettings.fogColor = colorFondo;
-        RenderSettings.fogDensity = densidadNiebla;
+        RenderSettings.fogColor = config.colorFondo;
+        RenderSettings.fogDensity = config.densidadNiebla;
 
         if (Camera.main != null)
         {
             Camera.main.clearFlags = CameraClearFlags.SolidColor;
-            Camera.main.backgroundColor = colorFondo;
+            Camera.main.backgroundColor = config.colorFondo;
         }
 
         foreach (Light luz in FindObjectsByType<Light>(FindObjectsSortMode.None))
@@ -816,7 +786,7 @@ public class BunkerGenerator : MonoBehaviour
         Light luz = objetoLuz.AddComponent<Light>();
         luz.type = LightType.Point;
         luz.range = 11f;
-        luz.intensity = intensidadLuces;
+        luz.intensity = config.intensidadLuces;
         luz.color = color;
         luz.shadows = LightShadows.None;
     }
@@ -895,7 +865,7 @@ public class BunkerGenerator : MonoBehaviour
 
     private void MoverJugador()
     {
-        if (!moverJugadorAlSpawn || jugador == null || SpawnJugador == null)
+        if (config == null || !config.moverJugadorAlSpawn || jugador == null || SpawnJugador == null)
         {
             return;
         }
@@ -920,33 +890,38 @@ public class BunkerGenerator : MonoBehaviour
         return punto;
     }
 
-    private GameObject CrearBloque(string nombre, GameObject prefab, Transform padre,
+    private GameObject InstantiateBunkerElement(GameObject prefab, Transform puntoSpawn)
+    {
+        return Instantiate(prefab, puntoSpawn.position, puntoSpawn.rotation, puntoSpawn);
+    }
+
+    private GameObject InstantiateBunkerElement(string nombre, GameObject prefab, Transform padre,
         Vector3 posicion, Vector3 escala, Material material, Quaternion rotacion)
     {
-        GameObject bloque = prefab != null ? Instantiate(prefab) : GameObject.CreatePrimitive(PrimitiveType.Cube);
-        bloque.name = nombre;
-        bloque.transform.SetParent(padre, false);
-        bloque.transform.localPosition = posicion;
-        bloque.transform.localRotation = rotacion;
-        bloque.transform.localScale = escala;
+        GameObject elemento = prefab != null ? Instantiate(prefab) : GameObject.CreatePrimitive(PrimitiveType.Cube);
+        elemento.name = nombre;
+        elemento.transform.SetParent(padre, false);
+        elemento.transform.localPosition = posicion;
+        elemento.transform.localRotation = rotacion;
+        elemento.transform.localScale = escala;
 
         if (material != null)
         {
-            foreach (Renderer renderer in bloque.GetComponentsInChildren<Renderer>())
+            foreach (Renderer renderer in elemento.GetComponentsInChildren<Renderer>())
             {
                 renderer.sharedMaterial = material;
             }
         }
 
-        if (bloque.GetComponentInChildren<Collider>() == null)
+        if (elemento.GetComponentInChildren<Collider>() == null)
         {
-            bloque.AddComponent<BoxCollider>();
+            elemento.AddComponent<BoxCollider>();
         }
 
-        return bloque;
+        return elemento;
     }
 
-    private void OnDrawGizmos()
+    private void OnDrawGizmosSelected()
     {
         if (SpawnJugador != null)
         {
@@ -954,16 +929,28 @@ public class BunkerGenerator : MonoBehaviour
             Gizmos.DrawWireSphere(SpawnJugador.position + Vector3.up * 0.9f, 0.5f);
         }
 
-        Gizmos.color = Color.red;
+        Gizmos.color = Color.yellow;
         foreach (Transform punto in PuntosSpawnEnemigos)
         {
-            if (punto != null) Gizmos.DrawWireSphere(punto.position + Vector3.up * 0.9f, 0.5f);
+            if (punto != null) Gizmos.DrawSphere(punto.position + Vector3.up * 0.9f, 0.45f);
         }
 
-        Gizmos.color = Color.yellow;
+        Gizmos.color = Color.red;
         foreach (Transform punto in PuntosSpawnBoss)
         {
-            if (punto != null) Gizmos.DrawWireSphere(punto.position + Vector3.up * 1.1f, 0.8f);
+            if (punto != null)
+            {
+                Gizmos.DrawSphere(punto.position + Vector3.up * 1.1f, 1.5f);
+                Gizmos.DrawWireSphere(punto.position + Vector3.up * 1.1f, 2.5f);
+            }
+        }
+
+        Gizmos.color = Color.cyan;
+        foreach (RutaRampa ruta in rutasRampas)
+        {
+            Gizmos.DrawLine(ruta.inicio, ruta.fin);
+            Gizmos.DrawWireSphere(ruta.inicio, 0.35f);
+            Gizmos.DrawWireSphere(ruta.fin, 0.35f);
         }
     }
 }
