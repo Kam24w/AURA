@@ -45,6 +45,7 @@ public class BunkerSettingsSO : ScriptableObject
     public GameObject prefabEnemigo;
     [Min(0)] public int enemigosPorSala;
     public GameObject prefabBoss;
+    [Min(0f)] public float distanciaMinimaSpawnJugador = 8f;
 
     private void OnValidate()
     {

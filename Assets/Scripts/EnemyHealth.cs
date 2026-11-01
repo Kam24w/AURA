@@ -10,6 +10,10 @@ public class EnemyHealth : MonoBehaviour
     [Header("UI (Opcional)")]
     public Slider healthBarSlider;
 
+    // Eventos para que la IA reaccione al daño y a la muerte sin acoplarse
+    public System.Action<float> OnDamaged;
+    public System.Action OnDied;
+
     void Start()
     {
         currentHealth = maxHealth;
@@ -25,7 +29,7 @@ public class EnemyHealth : MonoBehaviour
     public void TakeDamage(float amount)
     {
         currentHealth -= amount;
-        Debug.Log("¡Golpe al maniquí! Vida restante: " + currentHealth);
+        OnDamaged?.Invoke(amount);
 
         if (healthBarSlider != null)
         {
@@ -40,7 +44,16 @@ public class EnemyHealth : MonoBehaviour
 
     void Die()
     {
-        Debug.Log("¡El maniquí ha sido destruido!");
-        Destroy(gameObject); // Elimina el cubo de la escena
+        // Si la IA está suscrita, ella gestiona la muerte y destruye el cuerpo
+        // tras unos segundos; si no, comportamiento clásico (maniquí de prueba)
+        if (OnDied != null)
+        {
+            OnDied.Invoke();
+        }
+        else
+        {
+            Debug.Log("¡El maniquí ha sido destruido!");
+            Destroy(gameObject);
+        }
     }
 }

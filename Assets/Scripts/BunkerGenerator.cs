@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 
 public class BunkerGenerator : MonoBehaviour
 {
@@ -25,6 +26,7 @@ public class BunkerGenerator : MonoBehaviour
     }
 
     private readonly List<RutaRampa> rutasRampas = new List<RutaRampa>();
+    private NavMeshDataInstance navMeshInstancia;
 
     private static readonly Vector2Int[] Direcciones =
     {
@@ -146,6 +148,11 @@ public class BunkerGenerator : MonoBehaviour
         Physics.SyncTransforms();
         MoverJugador();
 
+        // Primero el NavMesh, después los enemigos: sus agentes lo necesitan al activarse
+        HornearNavMesh();
+        SpawnEnemigos();
+        SpawnBosses();
+
         Debug.Log($"AURA: semilla {SemillaUsada}. {TotalPisos} pisos, {config.columnas * config.filas * TotalPisos} salas, {PuntosSpawnEnemigos.Count} spawns enemigos y {PuntosSpawnBoss.Count} bosses. Rampas en salas {rampa01} y {rampa12}.", this);
     }
 
@@ -156,6 +163,12 @@ public class BunkerGenerator : MonoBehaviour
         PuntosSpawnBoss.Clear();
         rutasRampas.Clear();
         SpawnJugador = null;
+
+        if (navMeshInstancia.valid)
+        {
+            navMeshInstancia.Remove();
+            navMeshInstancia = default;
+        }
 
         if (raizGenerada == null)
         {
@@ -454,11 +467,6 @@ public class BunkerGenerator : MonoBehaviour
         Vector3 posicionBoss = salas[salaBoss].centro + Vector3.up * (alturaY + 0.1f);
         Transform puntoBoss = CrearPunto($"Spawn_Boss_P{piso + 1}", raizPiso, posicionBoss);
         PuntosSpawnBoss.Add(puntoBoss);
-
-        if (config.prefabBoss != null)
-        {
-            InstantiateBunkerElement(config.prefabBoss, puntoBoss);
-        }
     }
 
     private void ConstruirSala(Transform padre, Sala sala, float alturaY, bool llegaRampa,
@@ -711,12 +719,85 @@ public class BunkerGenerator : MonoBehaviour
             Vector3 posicion = sala.centro + offsets[i] + Vector3.up * (alturaY + 0.1f);
             Transform punto = CrearPunto($"Spawn_Enemigo_P{piso + 1}_S{sala.indice}_{i + 1}", padre, posicion);
             PuntosSpawnEnemigos.Add(punto);
+        }
+    }
 
-            if (config.prefabEnemigo != null && i < config.enemigosPorSala)
+    private void HornearNavMesh()
+    {
+        if (navMeshInstancia.valid)
+        {
+            navMeshInstancia.Remove();
+        }
+
+        float ancho = config.columnas * config.separacionSalas + config.tamanoSalaMax;
+        float profundo = config.filas * config.separacionSalas + config.tamanoSalaMax;
+        float alto = TotalPisos * config.alturaEntrePisos + config.alturaPiso + 6f;
+        Bounds limites = new Bounds(new Vector3(0f, alto * 0.5f - 2f, 0f),
+            new Vector3(ancho, alto, profundo));
+
+        navMeshInstancia = RuntimeNavMesh.Hornear(raizGenerada, limites);
+    }
+
+    private void SpawnEnemigos()
+    {
+        if (config.prefabEnemigo == null || config.enemigosPorSala <= 0)
+        {
+            return;
+        }
+
+        // Cada sala aporta 2 puntos consecutivos; se respeta enemigosPorSala
+        for (int i = 0; i < PuntosSpawnEnemigos.Count; i++)
+        {
+            if (i % 2 >= config.enemigosPorSala)
             {
-                InstantiateBunkerElement(config.prefabEnemigo, punto);
+                continue;
+            }
+
+            Transform punto = PuntosSpawnEnemigos[i];
+            if (PosicionSpawnValida(punto.position, out Vector3 posicion))
+            {
+                Instantiate(config.prefabEnemigo, posicion, punto.rotation, punto);
             }
         }
+    }
+
+    private void SpawnBosses()
+    {
+        if (config.prefabBoss == null)
+        {
+            return;
+        }
+
+        foreach (Transform punto in PuntosSpawnBoss)
+        {
+            if (PosicionSpawnValida(punto.position, out Vector3 posicion))
+            {
+                Instantiate(config.prefabBoss, posicion, punto.rotation, punto);
+            }
+        }
+    }
+
+    // Descarta spawns fuera del NavMesh o demasiado cerca del jugador.
+    // Los puntos predefinidos ya están separados entre salas y dentro de cada sala,
+    // por lo que no hace falta comprobar solapamiento entre enemigos.
+    private bool PosicionSpawnValida(Vector3 propuesta, out Vector3 posicion)
+    {
+        posicion = propuesta;
+
+        if (jugador != null
+            && Vector3.Distance(propuesta, jugador.transform.position) < config.distanciaMinimaSpawnJugador)
+        {
+            return false;
+        }
+
+        if (!NavMesh.SamplePosition(propuesta, out NavMeshHit impacto, 2f, NavMesh.AllAreas))
+        {
+            Debug.LogWarning($"AURA: spawn en {propuesta} descartado por estar fuera del NavMesh.", this);
+            return false;
+        }
+
+        posicion = impacto.position + Vector3.up * 0.05f;
+        return true;
     }
 
     private void CrearEscombros(Transform padre, Sala sala, float alturaY, System.Random aleatorio)
@@ -888,11 +969,6 @@ public class BunkerGenerator : MonoBehaviour
         Transform punto = CrearGrupo(nombre, padre);
         punto.localPosition = posicion;
         return punto;
-    }
-
-    private GameObject InstantiateBunkerElement(GameObject prefab, Transform puntoSpawn)
-    {
-        return Instantiate(prefab, puntoSpawn.position, puntoSpawn.rotation, puntoSpawn);
     }
 
     private GameObject InstantiateBunkerElement(string nombre, GameObject prefab, Transform padre,

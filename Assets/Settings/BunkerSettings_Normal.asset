@@ -30,9 +30,9 @@ MonoBehaviour:
   prefabSuelo: {fileID: 0}
   prefabPared: {fileID: 0}
   prefabRampa: {fileID: 0}
-  materialSuelo: {fileID: 0}
-  materialParedes: {fileID: 0}
-  materialRampa: {fileID: 0}
+  materialSuelo: {fileID: 2100000, guid: 3e72522418228b542a5edde25f007e97, type: 2}
+  materialParedes: {fileID: 2100000, guid: 0768697b090f2494a8db5b7e0180a7fe, type: 2}
+  materialRampa: {fileID: 2100000, guid: e282f4605b732484a8056942c892ce21, type: 2}
   atmosferaOscura: 1
   crearTechos: 1
   crearLuces: 1
@@ -42,6 +42,7 @@ MonoBehaviour:
   colorAmbiente: {r: 0.055, g: 0.075, b: 0.1, a: 1}
   colorFondo: {r: 0.004, g: 0.007, b: 0.012, a: 1}
   moverJugadorAlSpawn: 1
-  prefabEnemigo: {fileID: 0}
-  enemigosPorSala: 0
+  prefabEnemigo: {fileID: 8421949919403204022, guid: 04c81ed8dcb617d46b54adc002b4c899, type: 3}
+  enemigosPorSala: 2
   prefabBoss: {fileID: 0}
+  distanciaMinimaSpawnJugador: 8
