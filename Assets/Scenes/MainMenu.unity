@@ -197,7 +197,7 @@ MonoBehaviour:
   textoPrincipal: {r: 0.91, g: 0.92, b: 0.9, a: 1}
   textoSecundario: {r: 0.5, g: 0.57, b: 0.6, a: 1}
   fondoPanel: {r: 0.035, g: 0.05, b: 0.065, a: 0.97}
-  ambiente: {fileID: 0}
+  ambiente: {fileID: 8300000, guid: d2f9eeab112a43c3b4a34408a1172101, type: 3}
   clic: {fileID: 8300000, guid: 51e848f2adc3376912b7d74755237ee0, type: 3}
   volumenAmbiente: 0.25
 --- !u!1 &3000001
