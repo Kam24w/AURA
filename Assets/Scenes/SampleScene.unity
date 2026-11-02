@@ -716,6 +716,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 387bac9fc88370d49b14080eda635c8e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1396711403}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 387bac9fc88370d49b14080eda635c8e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1396711404}
   m_SourcePrefab: {fileID: 100100000, guid: 387bac9fc88370d49b14080eda635c8e, type: 3}
 --- !u!1 &1396711393 stripped
 GameObject:
@@ -809,6 +812,34 @@ MonoBehaviour:
   healthBarSlider: {fileID: 0}
   crearBarraSiFalta: 1
   colorBarra: {r: 0.2, g: 0.9, b: 0.25, a: 1}
+--- !u!114 &1396711404
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1396711393}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f8d4f6c82b44a5ab9a527034f82a011, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerAudio
+  pasos:
+  - {fileID: 8300000, guid: 95b2d71f55a0c1efd7b735a590819848, type: 3}
+  - {fileID: 8300000, guid: c2512bd4986d2f4e5abda7f748245728, type: 3}
+  - {fileID: 8300000, guid: c1aaceb2646e4bfc38795623c0239d0f, type: 3}
+  intervaloPasos: 0.34
+  salto: {fileID: 8300000, guid: d48aaf2f35b5651086c3dd69fed44ce2, type: 3}
+  aterrizaje: {fileID: 8300000, guid: 25451d7bf2581ab8eeba8c404501f67f, type: 3}
+  deslizamiento: {fileID: 8300000, guid: c21bdac6d6ece35c24e98be125a101ce, type: 3}
+  espada: {fileID: 8300000, guid: 3557f5d6a975ccbc0f191be0195e3b01, type: 3}
+  patada: {fileID: 8300000, guid: e6f242be3072ce9d05af2cec44e85818, type: 3}
+  combo: {fileID: 8300000, guid: 0a7f6a73c44a8bc4b3c6381b67b24816, type: 3}
+  impacto: {fileID: 8300000, guid: 61ab31541504be9b53a4cbab5bed1579, type: 3}
+  bloqueo: {fileID: 8300000, guid: 51e848f2adc3376912b7d74755237ee0, type: 3}
+  dano: {fileID: 8300000, guid: d07327b964661372f10ac86924931580, type: 3}
+  muerte: {fileID: 8300000, guid: 263d4d5a1f6a32803daa084c034ff7b1, type: 3}
+  volumen: 0.8
 --- !u!1001 &2024844336
 PrefabInstance:
   m_ObjectHideFlags: 0
