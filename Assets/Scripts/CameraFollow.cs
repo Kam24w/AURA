@@ -39,6 +39,8 @@ public class CameraFollow : MonoBehaviour
 
     void Start()
     {
+        sensibilidadMouse = GameSettings.SensibilidadMouse;
+
         if (objetivo != null)
         {
             PlayerController jugador = objetivo.GetComponentInParent<PlayerController>();
