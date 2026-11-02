@@ -68,6 +68,7 @@ public class EnemyController : MonoBehaviour
     public bool PuedeAtacar => Time.time >= proximoAtaque;
 
     private EnemyHealth salud;
+    private EnemyAudio enemyAudio;
     private float proximoDisparo;
     private float proximoAtaque;
     private bool disparoAplicado;
@@ -92,6 +93,7 @@ public class EnemyController : MonoBehaviour
         }
 
         salud = GetComponent<EnemyHealth>();
+        enemyAudio = GetComponent<EnemyAudio>();
         if (salud != null)
         {
             salud.OnDamaged += AlRecibirDano;
@@ -136,10 +138,14 @@ public class EnemyController : MonoBehaviour
 
         EstadoActual?.UpdateState();
 
+        float velocidad = Agente.enabled ? Agente.velocity.magnitude : 0f;
         if (animator != null)
         {
-            float velocidad = Agente.enabled ? Agente.velocity.magnitude : 0f;
             animator.SetFloat("Speed", velocidad, 0.15f, Time.deltaTime);
+        }
+        if (enemyAudio != null)
+        {
+            enemyAudio.ActualizarPasos(velocidad);
         }
     }
 
@@ -305,6 +311,7 @@ public class EnemyController : MonoBehaviour
     {
         proximoDisparo = Time.time + cooldownDisparo;
         disparoAplicado = false;
+        if (enemyAudio != null) enemyAudio.ReproducirDisparo();
 
         if (animator != null)
         {
@@ -319,6 +326,7 @@ public class EnemyController : MonoBehaviour
     {
         proximoAtaque = Time.time + cooldownMelee;
         meleeAplicado = false;
+        if (enemyAudio != null) enemyAudio.ReproducirMelee();
         ReproducirAtaqueMelee();
 
         StartCoroutine(RespaldoImpacto(tiempoImpactoMelee, false));
@@ -394,9 +402,10 @@ public class EnemyController : MonoBehaviour
 
     private void AlRecibirDano(float cantidad)
     {
-        if (!EstaMuerto && animator != null)
+        if (!EstaMuerto)
         {
-            animator.SetTrigger("Hit");
+            if (enemyAudio != null) enemyAudio.ReproducirDano();
+            if (animator != null) animator.SetTrigger("Hit");
         }
     }
 
@@ -407,6 +416,7 @@ public class EnemyController : MonoBehaviour
             return;
         }
         EstaMuerto = true;
+        if (enemyAudio != null) enemyAudio.ReproducirMuerte();
 
         StopAllCoroutines();
 
