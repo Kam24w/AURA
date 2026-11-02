@@ -29,6 +29,10 @@ public class EnemyHealth : MonoBehaviour
         {
             gameObject.AddComponent<EnemyHealthBar>();
         }
+        if (GetComponent<EnemyHitFlash>() == null)
+        {
+            gameObject.AddComponent<EnemyHitFlash>();
+        }
     }
 
     // Método para recibir daño
