@@ -25,6 +25,7 @@ public class PlayerController : MonoBehaviour
 
     private CharacterController controller;
     private Animator animator;
+    private PlayerAudio playerAudio;
     private Vector3 velocidadVertical;
     private Vector3 direccionMovimiento;
     private Vector3 direccionDeslizamiento;
@@ -48,6 +49,7 @@ public class PlayerController : MonoBehaviour
     {
         controller = GetComponent<CharacterController>();
         animator = GetComponent<Animator>();
+        playerAudio = GetComponent<PlayerAudio>();
 
         if (camaraTransform == null && Camera.main != null)
         {
@@ -65,6 +67,7 @@ public class PlayerController : MonoBehaviour
         if (saltoEnCurso && tocaSuelo && velocidadVertical.y <= 0f)
         {
             saltoEnCurso = false;
+            if (playerAudio != null) playerAudio.ReproducirAterrizaje();
         }
 
         estaEnSuelo = tocaSuelo && !saltoEnCurso;
@@ -176,6 +179,10 @@ public class PlayerController : MonoBehaviour
         {
             animator.SetFloat("Speed", direccionMovimiento.magnitude);
         }
+        if (playerAudio != null)
+        {
+            playerAudio.ActualizarPasos(estaEnSuelo && direccionMovimiento.magnitude >= 0.1f);
+        }
     }
 
     private void Saltar()
@@ -187,6 +194,7 @@ public class PlayerController : MonoBehaviour
         estaEnSuelo = false;
         velocidadVertical.y = fuerzaSalto;
         ReiniciarCadenaAtaque();
+        if (playerAudio != null) playerAudio.ReproducirSalto();
 
         if (animator != null)
         {
@@ -200,6 +208,7 @@ public class PlayerController : MonoBehaviour
         if (!estaEnSuelo || accionEnCurso || estaMuerto) return;
 
         estaBloqueando = true;
+        if (playerAudio != null) playerAudio.ReproducirBloqueo();
         if (animator != null)
         {
             animator.SetFloat("Speed", 0f);
@@ -296,12 +305,40 @@ public class PlayerController : MonoBehaviour
         return EsGolpeDeCadena(estado) || estado == "Combo" || estado == "SlideAttack";
     }
 
+    private void ReproducirSonidoAccion(string estado)
+    {
+        if (playerAudio == null) return;
+
+        switch (estado)
+        {
+            case "Sword1":
+            case "Sword2":
+            case "SlideAttack":
+                playerAudio.ReproducirEspada();
+                break;
+            case "Kick1":
+            case "Kick2":
+                playerAudio.ReproducirPatada();
+                break;
+            case "Combo":
+                playerAudio.ReproducirCombo();
+                break;
+            case "Slide":
+                playerAudio.ReproducirDeslizamiento();
+                break;
+            case "HIT":
+                playerAudio.ReproducirDano();
+                break;
+        }
+    }
+
     private void IniciarAccion(string nombreEstado)
     {
         if (estaMuerto) return;
 
         accionEnCurso = true;
         accionActual = nombreEstado;
+        ReproducirSonidoAccion(nombreEstado);
         tiempoAccion = 0f;
         duracionAccionActual = nombreEstado == "Slide"
             ? Mathf.Max(0.05f, duracionDeslizamiento)
@@ -435,6 +472,7 @@ public class PlayerController : MonoBehaviour
         DetenerBloqueo();
         LimpiarTriggersAcciones();
         if (arma != null) arma.TerminarAtaque();
+        if (playerAudio != null) playerAudio.ReproducirMuerte();
 
         if (animator != null)
         {
