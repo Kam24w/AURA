@@ -75,6 +75,7 @@ GameObject:
   - component: {fileID: 6890063944200927148}
   - component: {fileID: 596129840453900124}
   - component: {fileID: 6382865308941536583}
+  - component: {fileID: 6382865308941536584}
   m_Layer: 0
   m_Name: Bot_Enemy_Common
   m_TagString: Untagged
@@ -205,6 +206,29 @@ MonoBehaviour:
   cooldownMelee: 1.5
   tiempoImpactoMelee: 0.66
   tiempoCadaver: 4
+--- !u!114 &6382865308941536584
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8421949919403204022}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 76db80d79245427fa2c5678a61e2c512, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAudio
+  pasos:
+  - {fileID: 8300000, guid: 95b2d71f55a0c1efd7b735a590819848, type: 3}
+  - {fileID: 8300000, guid: c2512bd4986d2f4e5abda7f748245728, type: 3}
+  - {fileID: 8300000, guid: c1aaceb2646e4bfc38795623c0239d0f, type: 3}
+  intervaloPasos: 0.42
+  disparo: {fileID: 8300000, guid: 97450420f7a8dbfeffae944fb9108a73, type: 3}
+  melee: {fileID: 8300000, guid: fd7a02f1f14959a9ea02a8f83225a67d, type: 3}
+  dano: {fileID: 8300000, guid: 4457585a72a86543a72fcc2535e598cd, type: 3}
+  muerte: {fileID: 8300000, guid: fd3401a18f1fa24d3cbd98b0be5c60eb, type: 3}
+  volumen: 0.75
+  distanciaMaxima: 24
 --- !u!1001 &2777673386262773730
 PrefabInstance:
   m_ObjectHideFlags: 0
