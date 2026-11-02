@@ -7,11 +7,14 @@ public class WeaponDamage : MonoBehaviour
     public float attackCooldown = 0.5f;
 
     private bool ataqueActivo;
+    private PlayerAudio playerAudio;
     private readonly HashSet<EnemyHealth> enemigosGolpeados = new HashSet<EnemyHealth>();
     private readonly Dictionary<EnemyHealth, float> proximoGolpePorEnemigo = new Dictionary<EnemyHealth, float>();
 
     private void Awake()
     {
+        playerAudio = GetComponentInParent<PlayerAudio>();
+
         Rigidbody cuerpo = GetComponent<Rigidbody>();
         if (cuerpo == null)
         {
@@ -52,6 +55,7 @@ public class WeaponDamage : MonoBehaviour
         if (proximoGolpePorEnemigo.TryGetValue(enemy, out float proximoGolpe) && Time.time < proximoGolpe) return;
 
         enemy.TakeDamage(damageAmount);
+        if (playerAudio != null) playerAudio.ReproducirImpacto();
         enemigosGolpeados.Add(enemy);
         proximoGolpePorEnemigo[enemy] = Time.time + attackCooldown;
     }
