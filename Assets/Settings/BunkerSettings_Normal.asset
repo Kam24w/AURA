@@ -33,7 +33,7 @@ MonoBehaviour:
   materialSuelo: {fileID: 2100000, guid: 3e72522418228b542a5edde25f007e97, type: 2}
   materialParedes: {fileID: 2100000, guid: 0768697b090f2494a8db5b7e0180a7fe, type: 2}
   materialRampa: {fileID: 2100000, guid: e282f4605b732484a8056942c892ce21, type: 2}
-  atmosferaOscura: 1
+  atmosferaOscura: 0
   crearTechos: 1
   crearLuces: 1
   generarEscombros: 1
