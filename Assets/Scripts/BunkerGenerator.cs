@@ -831,18 +831,39 @@ private List<Vector3> ObtenerPosicionesPuertas(Sala sala, float alturaY)
 
     private void SpawnBosses()
     {
-        if (config.prefabBoss == null)
+        for (int indice = 0; indice < PuntosSpawnBoss.Count; indice++)
         {
-            return;
-        }
+            Transform punto = PuntosSpawnBoss[indice];
+            int piso = indice + 1;
+            GameObject prefabBoss = ObtenerPrefabBoss(piso);
 
-        foreach (Transform punto in PuntosSpawnBoss)
-        {
+            if (prefabBoss == null)
+            {
+                Debug.LogWarning($"AURA: no hay prefab asignado para el boss del piso {piso}.", this);
+                continue;
+            }
+
             if (PosicionSpawnValida(punto.position, out Vector3 posicion))
             {
-                Instantiate(config.prefabBoss, posicion, punto.rotation, punto);
+                GameObject boss = Instantiate(prefabBoss, posicion, punto.rotation, punto);
+                BossController controlador = boss.GetComponentInChildren<BossController>(true);
+                if (controlador != null)
+                {
+                    controlador.pisoActual = piso;
+                }
             }
         }
+    }
+
+    private GameObject ObtenerPrefabBoss(int piso)
+    {
+        GameObject prefabEspecifico = piso == 1
+            ? config.prefabBossPiso1
+            : piso == 2
+                ? config.prefabBossPiso2
+                : config.prefabBossPiso3;
+
+        return prefabEspecifico != null ? prefabEspecifico : config.prefabBoss;
     }
 
     // Descarta spawns fuera del NavMesh o demasiado cerca del jugador.
