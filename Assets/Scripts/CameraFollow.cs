@@ -39,6 +39,12 @@ public class CameraFollow : MonoBehaviour
 
     void Start()
     {
+        if (objetivo != null)
+        {
+            PlayerController jugador = objetivo.GetComponentInParent<PlayerController>();
+            if (jugador != null) objetivo = jugador.transform;
+        }
+
         pitch = inclinacionInicial;
         yaw = transform.eulerAngles.y;
     }
@@ -60,8 +66,11 @@ public class CameraFollow : MonoBehaviour
             posicionFinal = hit.point + hit.normal * radioEsfera;
         }
 
-        transform.position = Vector3.Lerp(transform.position, posicionFinal, suavizado * Time.deltaTime);
-        transform.LookAt(puntoDeMira);
+        float factorSuavizado = 1f - Mathf.Exp(-suavizado * Time.deltaTime);
+        transform.position = Vector3.Lerp(transform.position, posicionFinal, factorSuavizado);
+
+        Quaternion rotacionDeseada = Quaternion.LookRotation(puntoDeMira - transform.position);
+        transform.rotation = Quaternion.Slerp(transform.rotation, rotacionDeseada, factorSuavizado);
     }
 
     private void LeerEntradaRaton()
