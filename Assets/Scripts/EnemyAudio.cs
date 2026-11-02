@@ -5,6 +5,7 @@ public class EnemyAudio : MonoBehaviour
     [Header("Pasos")]
     public AudioClip[] pasos;
     [Min(0.1f)] public float intervaloPasos = 0.42f;
+    [Min(1f)] public float distanciaPasos = 7f;
 
     [Header("Combate")]
     public AudioClip disparo;
@@ -30,6 +31,8 @@ public class EnemyAudio : MonoBehaviour
 
         fuentePasos = gameObject.AddComponent<AudioSource>();
         ConfigurarFuente(fuentePasos);
+        fuentePasos.minDistance = 1.2f;
+        fuentePasos.maxDistance = distanciaPasos;
     }
 
     public void ActualizarPasos(float velocidad)
