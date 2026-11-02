@@ -44,6 +44,11 @@ public class BunkerSettingsSO : ScriptableObject
     public bool moverJugadorAlSpawn = true;
     public GameObject prefabEnemigo;
     [Min(0)] public int enemigosPorSala;
+    [Header("Bosses por piso")]
+    public GameObject prefabBossPiso1;
+    public GameObject prefabBossPiso2;
+    public GameObject prefabBossPiso3;
+    [Tooltip("Prefab de respaldo para pisos sin prefab específico.")]
     public GameObject prefabBoss;
     [Min(0f)] public float distanciaMinimaSpawnJugador = 8f;
 
