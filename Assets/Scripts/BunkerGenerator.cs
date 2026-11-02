@@ -148,9 +148,8 @@ public class BunkerGenerator : MonoBehaviour
         Physics.SyncTransforms();
         MoverJugador();
 
-        // Primero el NavMesh, después los enemigos: sus agentes lo necesitan al activarse
+        // El NavMesh debe existir antes de activar los enemigos y bosses.
         HornearNavMesh();
-        SpawnEnemigos();
         SpawnBosses();
 
         Debug.Log($"AURA: semilla {SemillaUsada}. {TotalPisos} pisos, {config.columnas * config.filas * TotalPisos} salas, {PuntosSpawnEnemigos.Count} spawns enemigos y {PuntosSpawnBoss.Count} bosses. Rampas en salas {rampa01} y {rampa12}.", this);
@@ -441,9 +440,29 @@ public class BunkerGenerator : MonoBehaviour
                 CrearProteccionesHueco(raizSala, sala, alturaY, orientacionLlegada);
             }
 
+            List<GameObject> enemigosDeSala = new List<GameObject>();
+
             if (sala.indice != entrada && !saleRampa && !llegaRampa)
             {
-                CrearSpawnsEnemigos(raizSala, sala, piso, alturaY);
+                enemigosDeSala = CrearSpawnsEnemigosConLista(raizSala, sala, piso, alturaY);
+            }
+
+            // Configurar el RoomEncounter en la sala si no es la de entrada
+            if (sala.indice != entrada && !llegaRampa)
+            {
+                RoomEncounter encuentro = raizSala.gameObject.AddComponent<RoomEncounter>();
+
+                // Configurar el Collider tipo Trigger para detectar al jugador al entrar
+                BoxCollider triggerSala = raizSala.gameObject.AddComponent<BoxCollider>();
+                triggerSala.isTrigger = true;
+                triggerSala.size = new Vector3(sala.ancho * 0.8f, 3f, sala.profundidad * 0.8f);
+                triggerSala.center = new Vector3(sala.centro.x, alturaY + 1.5f, sala.centro.z);
+
+                // Recolectar las posiciones de las puertas conectadas para colocar las barreras azules
+                List<Vector3> puertasPosiciones = ObtenerPosicionesPuertas(sala, alturaY);
+
+                encuentro.InicializarSala(enemigosDeSala, puertasPosiciones, sala.centro,
+                    config.anchoPasillo, config.alturaPuerta);
             }
 
             if (config.crearLuces)
@@ -468,6 +487,55 @@ public class BunkerGenerator : MonoBehaviour
         Transform puntoBoss = CrearPunto($"Spawn_Boss_P{piso + 1}", raizPiso, posicionBoss);
         PuntosSpawnBoss.Add(puntoBoss);
     }
+    private List<GameObject> CrearSpawnsEnemigosConLista(Transform padre, Sala sala, int piso, float alturaY)
+{
+    List<GameObject> listaInstanciados = new List<GameObject>();
+    float offsetX = sala.ancho * 0.25f;
+    float offsetZ = sala.profundidad * 0.25f;
+    Vector3[] offsets =
+    {
+        new Vector3(-offsetX, 0f, -offsetZ),
+        new Vector3(offsetX, 0f, offsetZ)
+    };
+
+    for (int i = 0; i < offsets.Length; i++)
+    {
+        if (i >= config.enemigosPorSala) continue;
+
+        Vector3 posicion = sala.centro + offsets[i] + Vector3.up * (alturaY + 0.1f);
+        Transform punto = CrearPunto($"Spawn_Enemigo_P{piso + 1}_S{sala.indice}_{i + 1}", padre, posicion);
+        PuntosSpawnEnemigos.Add(punto);
+
+        if (config.prefabEnemigo != null)
+        {
+            GameObject enemigoInst = Instantiate(config.prefabEnemigo, punto.position, punto.rotation, punto);
+            listaInstanciados.Add(enemigoInst);
+        }
+    }
+
+    return listaInstanciados;
+}
+private List<Vector3> ObtenerPosicionesPuertas(Sala sala, float alturaY)
+{
+    List<Vector3> posiciones = new List<Vector3>();
+
+    for (int direccion = 0; direccion < 4; direccion++)
+    {
+        if (sala.conexiones[direccion])
+        {
+            Vector3 centroPuerta = sala.centro;
+            if (direccion == 0) centroPuerta.z += sala.profundidad * 0.5f;
+            else if (direccion == 2) centroPuerta.z -= sala.profundidad * 0.5f;
+            else if (direccion == 1) centroPuerta.x += sala.ancho * 0.5f;
+            else if (direccion == 3) centroPuerta.x -= sala.ancho * 0.5f;
+
+            centroPuerta.y = alturaY;
+            posiciones.Add(centroPuerta);
+        }
+    }
+
+    return posiciones;
+}
 
     private void ConstruirSala(Transform padre, Sala sala, float alturaY, bool llegaRampa,
         bool saleRampa, int orientacionLlegada, int orientacionSalida)
