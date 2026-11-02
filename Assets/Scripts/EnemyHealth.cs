@@ -13,8 +13,9 @@ public class EnemyHealth : MonoBehaviour
     // Eventos para que la IA reaccione al daño y a la muerte sin acoplarse
     public System.Action<float> OnDamaged;
     public System.Action OnDied;
+    public bool IsDead { get; private set; }
 
-    void Start()
+    private void Awake()
     {
         currentHealth = maxHealth;
 
@@ -23,12 +24,22 @@ public class EnemyHealth : MonoBehaviour
             healthBarSlider.maxValue = maxHealth;
             healthBarSlider.value = currentHealth;
         }
+
+        if (GetComponent<EnemyHealthBar>() == null)
+        {
+            gameObject.AddComponent<EnemyHealthBar>();
+        }
     }
 
     // Método para recibir daño
     public void TakeDamage(float amount)
     {
-        currentHealth -= amount;
+        if (IsDead || amount <= 0f)
+        {
+            return;
+        }
+
+        currentHealth = Mathf.Max(0f, currentHealth - amount);
         OnDamaged?.Invoke(amount);
 
         if (healthBarSlider != null)
@@ -36,21 +47,24 @@ public class EnemyHealth : MonoBehaviour
             healthBarSlider.value = currentHealth;
         }
 
-        if (currentHealth <= 0)
+        if (currentHealth <= 0f)
         {
             Die();
         }
     }
 
-    void Die()
+    private void Die()
     {
-        // Si la IA está suscrita, ella gestiona la muerte y destruye el cuerpo
-        // tras unos segundos; si no, comportamiento clásico (maniquí de prueba)
-        if (OnDied != null)
+        if (IsDead)
         {
-            OnDied.Invoke();
+            return;
         }
-        else
+
+        IsDead = true;
+        OnDied?.Invoke();
+
+        // La IA gestiona su cadáver; el maniquí conserva su destrucción inmediata.
+        if (GetComponent<EnemyController>() == null)
         {
             Debug.Log("¡El maniquí ha sido destruido!");
             Destroy(gameObject);
