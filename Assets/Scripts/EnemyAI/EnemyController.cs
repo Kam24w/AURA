@@ -21,7 +21,7 @@ public class EnemyController : MonoBehaviour
     public float rangoPerdida = 20f;
     public float campoVision = 120f;
     public float tiempoPerdida = 3f;
-    public LayerMask capasObstaculos;
+    public LayerMask capasObstaculos = 1;
 
     [Header("Movimiento")]
     public float velocidadPatrulla = 2f;
@@ -242,8 +242,13 @@ public class EnemyController : MonoBehaviour
         Vector3 destino = objetivo.position + Vector3.up * 1f;
         Vector3 direccion = destino - origen;
 
-        return !Physics.Raycast(origen, direccion.normalized, direccion.magnitude,
-            capasObstaculos, QueryTriggerInteraction.Ignore);
+        if (!Physics.Raycast(origen, direccion.normalized, out RaycastHit impacto,
+            direccion.magnitude, capasObstaculos, QueryTriggerInteraction.Ignore))
+        {
+            return true;
+        }
+
+        return impacto.transform == objetivo || impacto.transform.IsChildOf(objetivo);
     }
 
     public void MoverHacia(Vector3 destino, float velocidad)
@@ -303,7 +308,7 @@ public class EnemyController : MonoBehaviour
 
         if (animator != null)
         {
-            animator.SetTrigger("Shoot");
+            animator.Play("BotRig|Shoot", 0, 0f);
         }
 
         // Respaldo por si el clip no tiene el Animation Event configurado
@@ -314,13 +319,17 @@ public class EnemyController : MonoBehaviour
     {
         proximoAtaque = Time.time + cooldownMelee;
         meleeAplicado = false;
-
-        if (animator != null)
-        {
-            animator.SetTrigger("Attack");
-        }
+        ReproducirAtaqueMelee();
 
         StartCoroutine(RespaldoImpacto(tiempoImpactoMelee, false));
+    }
+
+    public void ReproducirAtaqueMelee()
+    {
+        if (animator != null)
+        {
+            animator.Play("BotRig|Attack_Stomp", 0, 0f);
+        }
     }
 
     // Llamados desde los Animation Events del clip (directos o vía BotAnimationEventRelay)

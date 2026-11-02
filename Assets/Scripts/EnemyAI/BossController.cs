@@ -68,7 +68,7 @@ public class BossController : EnemyController
     {
         EjecutandoEspecial = true;
         DetenerMovimiento();
-        LanzarTriggerAtaque();
+        ReproducirAtaqueEspecial();
 
         yield return new WaitForSeconds(tiempoPreparacion);
 
@@ -102,7 +102,7 @@ public class BossController : EnemyController
     {
         EjecutandoEspecial = true;
         DetenerMovimiento();
-        LanzarTriggerAtaque();
+        ReproducirAtaqueEspecial();
 
         yield return new WaitForSeconds(tiempoPreparacion);
 
@@ -119,7 +119,7 @@ public class BossController : EnemyController
     {
         EjecutandoEspecial = true;
         DetenerMovimiento();
-        LanzarTriggerAtaque();
+        ReproducirAtaqueEspecial();
 
         yield return new WaitForSeconds(tiempoPreparacion);
 
@@ -156,11 +156,8 @@ public class BossController : EnemyController
         EjecutandoEspecial = false;
     }
 
-    private void LanzarTriggerAtaque()
+    private void ReproducirAtaqueEspecial()
     {
-        if (animator != null)
-        {
-            animator.SetTrigger("Attack");
-        }
+        ReproducirAtaqueMelee();
     }
 }
