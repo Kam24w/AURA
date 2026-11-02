@@ -843,7 +843,7 @@ private List<Vector3> ObtenerPosicionesPuertas(Sala sala, float alturaY)
                 continue;
             }
 
-            if (PosicionSpawnValida(punto.position, out Vector3 posicion))
+            if (PosicionBossValida(punto.position, out Vector3 posicion))
             {
                 GameObject boss = Instantiate(prefabBoss, posicion, punto.rotation, punto);
                 BossController controlador = boss.GetComponentInChildren<BossController>(true);
@@ -851,6 +851,12 @@ private List<Vector3> ObtenerPosicionesPuertas(Sala sala, float alturaY)
                 {
                     controlador.pisoActual = piso;
                 }
+
+                Debug.Log($"AURA: boss del piso {piso} creado en {posicion}.", this);
+            }
+            else
+            {
+                Debug.LogError($"AURA: no se pudo crear el boss del piso {piso}; punto {punto.position} no está sobre el NavMesh.", this);
             }
         }
     }
@@ -864,6 +870,18 @@ private List<Vector3> ObtenerPosicionesPuertas(Sala sala, float alturaY)
                 : config.prefabBossPiso3;
 
         return prefabEspecifico != null ? prefabEspecifico : config.prefabBoss;
+    }
+
+    private bool PosicionBossValida(Vector3 propuesta, out Vector3 posicion)
+    {
+        if (NavMesh.SamplePosition(propuesta, out NavMeshHit impacto, 4f, NavMesh.AllAreas))
+        {
+            posicion = impacto.position + Vector3.up * 0.05f;
+            return true;
+        }
+
+        posicion = propuesta;
+        return false;
     }
 
     // Descarta spawns fuera del NavMesh o demasiado cerca del jugador.
