@@ -46,6 +46,10 @@ public class EnemyController : MonoBehaviour
     public Transform muzzleR;
     public Vector3 offsetMuzzleL = new Vector3(-0.35f, 1.2f, 0.6f);
     public Vector3 offsetMuzzleR = new Vector3(0.35f, 1.2f, 0.6f);
+    public Color colorApuntado = new Color(1f, 0.05f, 0.02f, 1f);
+    [Min(0.01f)] public float grosorApuntado = 0.035f;
+    [Min(0.05f)] public float duracionApuntado = 0.25f;
+    [Min(0.1f)] public float velocidadProyectilVisual = 24f;
 
     [Header("Melee")]
     public float rangoMelee = 2.2f;
@@ -76,6 +80,7 @@ public class EnemyController : MonoBehaviour
     private bool usarMuzzleL = true;
     private float proximaComprobacionNavMesh;
     private bool avisoNavMeshMostrado;
+    private LineRenderer lineaApuntado;
 
     protected virtual void Awake()
     {
@@ -101,6 +106,7 @@ public class EnemyController : MonoBehaviour
         }
 
         CrearMuzzlesSiFaltan();
+        CrearLineaApuntado();
 
         EstadoPatrullar = CrearEstadoPatrullar();
         EstadoPerseguir = CrearEstadoPerseguir();
@@ -313,10 +319,8 @@ public class EnemyController : MonoBehaviour
         disparoAplicado = false;
         if (enemyAudio != null) enemyAudio.ReproducirDisparo();
 
-        if (animator != null)
-        {
-            animator.Play("BotRig|Shoot", 0, 0f);
-        }
+        MostrarApuntado();
+        ReproducirAtaqueDisparo();
 
         // Respaldo por si el clip no tiene el Animation Event configurado
         StartCoroutine(RespaldoImpacto(tiempoImpactoDisparo, true));
@@ -336,8 +340,45 @@ public class EnemyController : MonoBehaviour
     {
         if (animator != null)
         {
-            animator.Play("BotRig|Attack_Stomp", 0, 0f);
+            if (TieneParametroAnimator("Attack", AnimatorControllerParameterType.Trigger))
+            {
+                animator.SetTrigger("Attack");
+            }
+            else
+            {
+                animator.Play("BotRig|Attack_Stomp", 0, 0f);
+            }
         }
+    }
+
+    private void ReproducirAtaqueDisparo()
+    {
+        if (animator == null)
+        {
+            return;
+        }
+
+        if (TieneParametroAnimator("Attack", AnimatorControllerParameterType.Trigger))
+        {
+            animator.SetTrigger("Attack");
+        }
+        else
+        {
+            animator.Play("BotRig|Shoot", 0, 0f);
+        }
+    }
+
+    private bool TieneParametroAnimator(string nombre, AnimatorControllerParameterType tipo)
+    {
+        foreach (AnimatorControllerParameter parametro in animator.parameters)
+        {
+            if (parametro.name == nombre && parametro.type == tipo)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // Llamados desde los Animation Events del clip (directos o vía BotAnimationEventRelay)
@@ -380,9 +421,94 @@ public class EnemyController : MonoBehaviour
                 cuerpo.linearVelocity = direccion * velocidadProyectil;
             }
         }
-        else if (TieneLineaVision())
+        else
         {
-            objetivo.SendMessage("TakeDamage", danoDisparo, SendMessageOptions.DontRequireReceiver);
+            CrearProyectilVisual(origen, objetivo.position + Vector3.up * 0.9f);
+            if (TieneLineaVision())
+            {
+                objetivo.SendMessage("TakeDamage", danoDisparo, SendMessageOptions.DontRequireReceiver);
+            }
+        }
+    }
+
+    private void CrearLineaApuntado()
+    {
+        GameObject objetoLinea = new GameObject("Linea_Apuntado");
+        objetoLinea.transform.SetParent(transform, false);
+        lineaApuntado = objetoLinea.AddComponent<LineRenderer>();
+        lineaApuntado.positionCount = 2;
+        lineaApuntado.startWidth = grosorApuntado;
+        lineaApuntado.endWidth = grosorApuntado;
+        lineaApuntado.useWorldSpace = true;
+        lineaApuntado.material = new Material(Shader.Find("Sprites/Default"));
+        lineaApuntado.startColor = colorApuntado;
+        lineaApuntado.endColor = colorApuntado;
+        lineaApuntado.enabled = false;
+    }
+
+    private void MostrarApuntado()
+    {
+        if (lineaApuntado == null || objetivo == null)
+        {
+            return;
+        }
+
+        Transform muzzle = usarMuzzleL ? muzzleL : muzzleR;
+        Vector3 origen = muzzle != null ? muzzle.position : transform.position + Vector3.up * 1.2f;
+        Vector3 destino = objetivo.position + Vector3.up * 0.9f;
+        lineaApuntado.SetPosition(0, origen);
+        lineaApuntado.SetPosition(1, destino);
+        lineaApuntado.enabled = true;
+        StartCoroutine(OcultarApuntado());
+    }
+
+    private IEnumerator OcultarApuntado()
+    {
+        yield return new WaitForSeconds(duracionApuntado);
+        if (lineaApuntado != null)
+        {
+            lineaApuntado.enabled = false;
+        }
+    }
+
+    private void CrearProyectilVisual(Vector3 origen, Vector3 destino)
+    {
+        GameObject proyectil = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        proyectil.name = "Proyectil_Rojo_Visual";
+        proyectil.transform.position = origen;
+        proyectil.transform.localScale = Vector3.one * 0.16f;
+
+        Renderer renderer = proyectil.GetComponent<Renderer>();
+        if (renderer != null)
+        {
+            Material material = new Material(Shader.Find("Universal Render Pipeline/Unlit")
+                ?? Shader.Find("Standard"));
+            material.color = colorApuntado;
+            renderer.material = material;
+        }
+
+        Collider collider = proyectil.GetComponent<Collider>();
+        if (collider != null)
+        {
+            Destroy(collider);
+        }
+
+        StartCoroutine(MoverProyectilVisual(proyectil, destino));
+    }
+
+    private IEnumerator MoverProyectilVisual(GameObject proyectil, Vector3 destino)
+    {
+        while (proyectil != null && Vector3.Distance(proyectil.transform.position, destino) > 0.05f)
+        {
+            proyectil.transform.position = Vector3.MoveTowards(
+                proyectil.transform.position, destino,
+                velocidadProyectilVisual * Time.deltaTime);
+            yield return null;
+        }
+
+        if (proyectil != null)
+        {
+            Destroy(proyectil);
         }
     }
 
