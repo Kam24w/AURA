@@ -63,11 +63,12 @@ public static class BossPrefabSetup
         GameObject modelo = AssetDatabase.LoadAssetAtPath<GameObject>(definition.ModelPath);
         RuntimeAnimatorController controller =
             AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(definition.ControllerPath);
+        Avatar avatar = AssetDatabase.LoadAssetAtPath<Avatar>(definition.ModelPath);
 
-        if (modelo == null || controller == null)
+        if (modelo == null || controller == null || avatar == null)
         {
             Debug.LogError(
-                $"AURA: no se pudo cargar el modelo o controller del piso {definition.Floor}: " +
+                $"AURA: no se pudo cargar el modelo, Avatar o controller del piso {definition.Floor}: " +
                 $"{definition.ModelPath} / {definition.ControllerPath}.");
             return null;
         }
@@ -103,6 +104,7 @@ public static class BossPrefabSetup
         }
 
         animator.runtimeAnimatorController = controller;
+        animator.avatar = avatar;
         animator.applyRootMotion = false;
         boss.animator = animator;
 
